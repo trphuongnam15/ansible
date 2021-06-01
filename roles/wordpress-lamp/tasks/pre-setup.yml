@@ -1,0 +1,32 @@
+---
+- name: Install apt using apt-get.
+  apt:
+    name: aptitude
+    update_cache: yes
+    state: latest
+    force_apt_get: yes
+
+- name: Perform a safe upgrade of all packages.
+  apt:
+    upgrade: safe
+    update_cache: yes
+
+- name: Remove unused packages.
+  apt:
+    autoclean: yes
+    autoremove: yes
+
+- name: Disable SSH root login.
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+  notify: restart sshd
+
+- name: Open port 22 for SSH.
+  ufw:
+    rule: allow
+    port: 22
+    proto: tcp
+  notify: restart ufw

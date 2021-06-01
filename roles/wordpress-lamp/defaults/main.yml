@@ -1,0 +1,31 @@
+---
+lamp_packages:
+  - apache2
+  - mysql-server
+  - python3-pymysql
+  - php
+  - libapache2-mod-php
+
+php_modules:
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-xmlrpc
+  - php-soap
+  - php-intl
+  - php-zip
+  - php-mysql
+
+wordpress_archive_url: https://wordpress.org/latest.tar.gz
+
+# MySQL
+mysql_root_password: ''
+mysql_db: 'wordpress'
+mysql_user: 'wordpress'
+mysql_password: ''
+
+# HTTP
+http_host: ''
+http_conf: '.conf'
+http_port: '80'

@@ -1,0 +1,6 @@
+---
+- name: Pre-setup tasks.
+  include_tasks: pre-setup.yml
+
+- name: Setup tasks.
+  include_tasks: setup.yml

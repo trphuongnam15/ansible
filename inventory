@@ -1,0 +1,8 @@
+[all:vars]
+ansible_ssh_extra_args='-o StrictHostKeyChecking=no'
+ansible_port=22
+ansible_connection=ssh
+ansible_user=ubuntu
+ansible_ssh_private_key_file=./ubuntu.pem
+
+[wordpress_lamp_servers]

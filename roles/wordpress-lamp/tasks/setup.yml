@@ -1,0 +1,120 @@
+---
+- name: Open port 80 for HTTP.
+  ufw:
+    rule: allow
+    port: 80
+    proto: tcp
+  notify: restart ufw
+
+- name: Install the LAMP packages.
+  apt:
+    name: '{{ item }}'
+    update_cache: yes
+    state: latest
+  loop: '{{ lamp_packages }}'
+
+- name: Install the PHP extensions.
+  apt:
+    name: '{{ item }}'
+    update_cache: yes
+    state: latest
+  loop: '{{ php_modules }}'
+
+- name: Create the document root.
+  file:
+    path: '/var/www/{{ http_host }}'
+    state: directory
+    owner: 'www-data'
+    group: 'www-data'
+    mode: '0755'
+
+- name: Set up an Apache VirtualHost.
+  template:
+    src: 'files/apache.conf.j2'
+    dest: '/etc/apache2/sites-available/{{ http_conf }}'
+  notify: reload apache
+
+- name: Enable the rewrite module.
+  shell: /usr/sbin/a2enmod rewrite
+  notify: reload apache
+
+- name: Enable the new site.
+  shell: /usr/sbin/a2ensite {{ http_conf }}
+  notify: reload apache
+
+- name: Disable the default Apache site.
+  shell: /usr/sbin/a2dissite 000-default.conf
+  notify: restart apache
+
+- name: Set the MySQL root user's password.
+  mysql_user:
+    name: root
+    password: '{{ mysql_root_password }}'
+    check_implicit_admin: yes
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Create the .my.cnf file.
+  template:
+    src: files/client.my.cnf.j2
+    dest: '/root/.my.cnf'
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Remove all anonymous users.
+  mysql_user:
+    name: ''
+    host_all: yes
+    state: absent
+    login_user: root
+    login_password: '{{ mysql_root_password }}'
+
+- name: Remove the test database.
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: '{{ mysql_root_password }}'
+
+- name: Create a database for WordPress.
+  mysql_db:
+    name: '{{ mysql_db }}'
+    state: present
+    login_user: root
+    login_password: '{{ mysql_root_password }}'
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Create a MySQL user for WordPress.
+  mysql_user:
+    name: '{{ mysql_user }}'
+    password: '{{ mysql_password }}'
+    priv: '{{ mysql_db }}.*:ALL'
+    state: present
+    login_user: root
+    login_password: '{{ mysql_root_password }}'
+
+- name: Download and unpack the latest WordPress archive.
+  unarchive:
+    src: '{{ wordpress_archive_url }}'
+    dest: '/var/www/{{ http_host }}'
+    remote_src: yes
+    creates: '/var/www/{{ http_host }}/wordpress'
+
+- name: Set up the wp-config.php file.
+  template:
+    src: 'files/wp-config.php.j2'
+    dest: '/var/www/{{ http_host }}/wordpress/wp-config.php'
+
+- name: Set ownership for the WordPress source.
+  file:
+    path: '/var/www/{{ http_host }}'
+    state: directory
+    recurse: yes
+    owner: www-data
+    group: www-data
+
+- name: Set permissions for directories.
+  command: "find /var/www/{{ http_host }}/wordpress/ -type d -exec chmod 750 {} \\;"
+
+- name: Set permissions for files.
+  command: "find /var/www/{{ http_host }}/wordpress/ -type f -exec chmod 640 {} \\;"
